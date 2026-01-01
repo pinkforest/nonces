@@ -185,7 +185,9 @@ mod test {
         let crypto_bigint_nonce_1 = CryptoBigInt::seq_nonce(&iv_bytes, 1);
         
         assert_eq!(rustls_nonce_1.as_bytes(), &crypto_bigint_nonce_1);
-    
+
+        assert_eq!(&crypto_bigint_nonce_1, &hex!("6fac81d4f2c3bebe02b8b374"));
+        
     }
 }
 
