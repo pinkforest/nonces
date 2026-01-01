@@ -1,10 +1,13 @@
+//---------------------------------------
+// Case 1: rustls cut-n-paste
+//---------------------------------------
 pub const NONCE_LEN: usize = 12;
 
 #[derive(Debug)]
 #[allow(dead_code)]
 pub enum ApiMisuse {
     IvLengthExceedsMaximum { actual: usize, maximum: usize },
-    NonceArraySizeMismatch { expected: usize, actual: usize },    
+    NonceArraySizeMismatch { expected: usize, actual: usize },
 }
 
 /// A write or read IV.
@@ -152,12 +155,15 @@ impl Nonce {
     }
 }
 
+//---------------------------------------
+// Case 2 - Using crypto_bigint U128
+//---------------------------------------
+
 use crypto_bigint::Encoding;
 
 pub struct CryptoBigInt;
 
 impl CryptoBigInt {
-
     pub fn seq_nonce(iv_bytes: &[u8; 12], seq_id: u64) -> [u8; 12] {
         let mut u128_iv: [u8; 16] = [0; 16];
         u128_iv[4..16].copy_from_slice(iv_bytes);
@@ -165,7 +171,9 @@ impl CryptoBigInt {
         let seq_no_u128 = crypto_bigint::U128::from_u64(seq_id);
         let nonce_u128 = iv_u128.wrapping_xor(&seq_no_u128);
         let b: [u8; 16] = nonce_u128.to_be_bytes();
-        [b[4], b[5], b[6], b[7], b[8], b[9], b[10], b[11], b[12], b[13], b[14], b[15]]
+        [
+            b[4], b[5], b[6], b[7], b[8], b[9], b[10], b[11], b[12], b[13], b[14], b[15],
+        ]
     }
 }
 
@@ -174,20 +182,18 @@ mod test {
 
     use super::*;
     use hex_literal::hex;
-    
+
     #[test]
     fn compat() {
         let iv_bytes: [u8; 12] = hex!("6fac81d4f2c3bebe02b8b375");
-        
-        let iv = Iv::new(&iv_bytes).unwrap();        
+
+        let iv = Iv::new(&iv_bytes).unwrap();
         let rustls_nonce_1 = Nonce::new(&iv, 1);
-        
+
         let crypto_bigint_nonce_1 = CryptoBigInt::seq_nonce(&iv_bytes, 1);
-        
+
         assert_eq!(rustls_nonce_1.as_bytes(), &crypto_bigint_nonce_1);
 
         assert_eq!(&crypto_bigint_nonce_1, &hex!("6fac81d4f2c3bebe02b8b374"));
-        
     }
 }
-
